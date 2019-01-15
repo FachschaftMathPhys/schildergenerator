@@ -1,14 +1,21 @@
 #!/usr/bin/env python2
 # -*- encoding: utf8 -*-
 
-from flask import Flask, flash, session, redirect, url_for, escape, request, Response, Markup
+from flask import Flask, flash, session, redirect, url_for, escape, request, Response, Markup, render_template
 import sys
 import os
 import os.path
 import glob
+
+
+#TODO ersetze durch jinja
 from genshi.template import TemplateLoader
 from genshi.template.text import NewTextTemplate
 from flaskext.genshi import Genshi, render_response
+
+import jinja2
+from jinja2 import Template
+
 from werkzeug.utils import secure_filename
 from collections import defaultdict
 from docutils.core import publish_parts
@@ -16,10 +23,17 @@ import warnings
 import shutil
 import subprocess
 from subprocess import CalledProcessError, STDOUT
-import PythonMagick
+
+
+
+#TODO ersetze durch wand
+#import PythonMagick
 import json
 import tempfile
 import config
+
+#import os
+#os.environ["PYTHONIOENCODING"] = "utf-8"
 
 app = Flask(__name__)
 app.config.update(
@@ -30,6 +44,9 @@ app.config.update(
 app.secret_key = config.app_secret
 genshi = Genshi(app)
 genshi.extensions['html'] = 'html5'
+
+#print(app.jinja_env.loader)
+
 
 
 def check_output(*popenargs, **kwargs):
@@ -220,13 +237,16 @@ def edit(**kwargs):
     #data['images'] = [os.path.basename(f) for f in imagelist] #TODO
     data['images'] = generateImagelist()
     data['logos'] = generateImagelist(config.logodir)
-    data['standartLogo'] = config.standartLogo
-    data['standartFooter'] = config.standartFooter
+    data['standard_logo'] = config.standartLogo
+    data['standard_footer'] = config.standartFooter
     templatelist = glob.glob(config.textemplatedir + '/*.tex')
     data['templates'] = [unicode(os.path.basename(f))
                          for f in sorted(templatelist)]
     data['imageextensions'] = config.allowed_extensions
-    return render_response('edit.html', data)
+    
+    #TODO GENSCHI
+    return render_template('edit.html',data=data)
+    #return render_response('edit.html', data)
 
 
 @app.route('/edit/<filename>')
