@@ -1,7 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- encoding: utf8 -*-
 
-from flask import Flask, flash, session, redirect, url_for, escape, request, Response, Markup, render_template
+from flask import Flask, flash, session, redirect, url_for, escape, request, Response, Markup, render_template, send_file
 import sys
 import os
 import os.path
@@ -28,6 +28,9 @@ from subprocess import CalledProcessError, STDOUT
 
 #TODO ersetze durch wand
 #import PythonMagick
+import wand
+from wand.image import Image
+
 import json
 import tempfile
 import config
@@ -39,11 +42,15 @@ app = Flask(__name__)
 app.config.update(
     UPLOAD_FOLDER = config.uploaddir,
     PROPAGATE_EXCEPTIONS = True,
-    MAX_CONTENT_LENGTH = 8388608L
+    MAX_CONTENT_LENGTH = 8388608
 )
+
+app.jinja_env.lstrip_blocks = True
+app.jinja_env.trim_blocks = True
+
 app.secret_key = config.app_secret
-genshi = Genshi(app)
-genshi.extensions['html'] = 'html5'
+#genshi = Genshi(app)
+#genshi.extensions['html'] = 'html5'
 
 #print(app.jinja_env.loader)
 
@@ -99,7 +106,8 @@ def save_data(formdata, outfilename):
         json.dump(formdata, outfile)
     
 def run_pdflatex(context, outputfilename, overwrite=True):
-    if not context.has_key('textemplate'):
+    print('test')
+    if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
         context['textemplate'] = "text-image-quer.tex"
     genshitex = TemplateLoader([config.textemplatedir])
     template = genshitex.load(
@@ -111,8 +119,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         #context['headline'] = publish_parts(context['headline'], writer_name='latex')['body']
     tmpdir = tempfile.mkdtemp(dir=config.tmpdir)
     
-    #image
-    if context.has_key('img') and context['img'] and context['img'] != '__none':
+    #wenn die vorlage ein bild enthält: kopiere bild nach temp
+    if 'img' in context.keys() and context['img'] and context['img'] != '__none':
         try:
             source = os.path.join(config.imagedir, context['img'])
             
@@ -131,8 +139,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         # print "MEH No image"
         pass
     
-    #logo   
-    if context.has_key('logo') and context['logo'] and context['logo'] != '__none':
+    #wenn vorlage ein logo enthält: kopiere logo nach temp   
+    if 'logo' in context.keys() and context['logo'] and context['logo'] != '__none':
         try:
             source = os.path.join(config.logodir, context['logo'])
             
@@ -154,7 +162,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     
     tmptexfile = os.path.join(tmpdir, 'output.tex')
     tmppdffile = os.path.join(tmpdir, 'output.pdf')
-    with open(tmptexfile, 'w') as texfile:
+    with open(tmptexfile, 'wb') as texfile:
         texfile.write(template.generate(form=context).render(encoding='utf8'))
     cwd = os.getcwd()
     os.chdir(tmpdir)
@@ -166,6 +174,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         if overwrite:
             try:
                 flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % e.output), 'log')
+                print(e.output)
             except:
                 print(e.output)
         raise SyntaxWarning("PDFLaTeX bailed out")
@@ -174,15 +183,18 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     if overwrite:
         try:
             flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % texlog), 'log')
+            print(texlog) #DEBUG
         except:
             print(texlog)
+    print('pdflatex3')
     shutil.copy(tmppdffile, outputfilename)
     shutil.rmtree(tmpdir)
 
 def save_and_convert_image_upload(inputname,folder):
+    
     imgfile = request.files[inputname]
+    
     if imgfile:
-        print 'debug#1'
         if not allowed_file(imgfile.filename):
             raise UserWarning(
                 "Uploaded image is not in the list of allowed file types.")
@@ -190,19 +202,14 @@ def save_and_convert_image_upload(inputname,folder):
         filename = os.path.join(
             config.uploaddir, secure_filename(imgfile.filename))
         imgfile.save(filename)
+        #TODO wand
         img = PythonMagick.Image(filename)
         imgname = os.path.splitext(secure_filename(imgfile.filename))[
             0].replace('.', '_') + '.png'
         savedfilename = os.path.join(folder, imgname)
-        print 'debug#end-2'
-        print savedfilename
-        print folder
         img.write(str(savedfilename))
-        print 'debug#end-1'
         os.remove(filename)
-        print 'debug#end'
         return imgname
-    print "no file"
     return None
 
 
@@ -211,11 +218,12 @@ def make_thumb(filename, maxgeometry):
 
     thumbpath = filename + '.' + str(maxgeometry)
     if not os.path.exists(thumbpath) or os.path.getmtime(filename) > os.path.getmtime(thumbpath):
-        img = PythonMagick.Image(str(filename))
-        img.transform("%sx%s" % (maxgeometry, maxgeometry))
-        img.quality(90)
-        img.write(str("png:%s" % thumbpath))
-    print filename , " #2 "
+        img = Image(filename=str(filename))
+        img.format = 'png'
+        img.resize(maxgeometry, maxgeometry)
+        img.compression_quality = 90
+        img.save(filename=str(thumbpath))
+
     return thumbpath
 
 
@@ -225,8 +233,8 @@ def index(**kwargs):
     data = defaultdict(str)
     data.update(**kwargs)
     filelist = glob.glob(config.datadir + '/*.schild')
-    data['files'] = [unicode(os.path.basename(f)) for f in sorted(filelist)]
-    return render_response('index.html', data)
+    data['files'] = [os.path.basename(f) for f in sorted(filelist)]
+    return render_template('index.html', data=data)
 
 
 @app.route('/edit')
@@ -240,13 +248,12 @@ def edit(**kwargs):
     data['standard_logo'] = config.standartLogo
     data['standard_footer'] = config.standartFooter
     templatelist = glob.glob(config.textemplatedir + '/*.tex')
-    data['templates'] = [unicode(os.path.basename(f))
+    data['templates'] = [os.path.basename(f)
                          for f in sorted(templatelist)]
     data['imageextensions'] = config.allowed_extensions
     
     #TODO GENSCHI
     return render_template('edit.html',data=data)
-    #return render_response('edit.html', data)
 
 
 @app.route('/edit/<filename>')
@@ -256,10 +263,11 @@ def edit_one(filename):
 
 @app.route('/create', methods=['POST'])
 def create():
+    print('post:create')
     if request.method == 'POST':
         formdata = defaultdict(str, request.form.to_dict(flat=True))
         for a in ('headline', 'text'):
-            formdata[a] = unicode(formdata[a])
+            formdata[a] = formdata[a]
         try:
             
             #Bild upload
@@ -282,18 +290,22 @@ def create():
                 imagedir = os.path.join(imagedir , category)
                 if not os.path.exists(imagedir):
                     os.makedirs(imagedir)
-           
-            imgpath = save_and_convert_image_upload('imgupload',imagedir)
-            if imgpath is not None:
+            #prüfe ob bild hochgeladen wurde und speichere es
+            imgpath = None
+            if formdata['imgupload']:
+                imgpath = save_and_convert_image_upload('imgupload',imagedir)
+            #if imgpath is not None:
                 if(category != 'none'):
                     formdata['img'] =  os.path.join(category,imgpath)
                 else:
                     formdata['img'] =  imgpath
+
             
-        
             #logo upload
-            logopath = save_and_convert_image_upload('logoupload',config.logodir)
-            if logopath is not None:
+            logopath = None
+            if formdata['logoupload']:
+                logopath = save_and_convert_image_upload('logoupload',config.logodir)
+            #if logopath is not None:
                 formdata['logo'] = logopath
             
             outfilename = secure_filename(formdata['headline'][:16]) + str(hash(formdata['headline'] + formdata[
@@ -338,7 +350,7 @@ def create():
 
 @app.route('/schild/<filename>')
 def schild(filename):
-    return render_response('schild.html', {'filename': filename, 'printer': [unicode(f) for f in sorted(config.printers.keys())]})
+    return render_template('schild.html', data = {'filename': filename, 'printer': [f for f in sorted(config.printers.keys())]})
 
 
 @app.route('/printout', methods=['POST'])
@@ -397,7 +409,7 @@ def thumbnail(imgname,category, maxgeometry):
     else:
         imgpath = os.path.join(config.imagedir, category ,secure_filename( imgname))
     thumbpath = make_thumb(imgpath, maxgeometry)
-    with open(thumbpath, 'r') as imgfile:
+    with open(thumbpath, 'rb') as imgfile:
         return Response(imgfile.read(), mimetype="image/png")
 
 @app.route('/logothumbnail/<category>/<imgname>/<int:maxgeometry>')
@@ -407,7 +419,8 @@ def logothumbnail(imgname,category, maxgeometry):
     else:
         imgpath = os.path.join(config.logodir, category + '/' +secure_filename( imgname))
     thumbpath = make_thumb(imgpath, maxgeometry)
-    with open(thumbpath, 'r') as imgfile:
+    with open(thumbpath, 'rb') as imgfile:
+        #print(imgfile)
         return Response(imgfile.read(), mimetype="image/png")
 
 
@@ -417,7 +430,7 @@ def logothumbnail(imgname,category, maxgeometry):
 def pdfthumbnail(pdfname, maxgeometry):
     pdfpath = os.path.join(config.pdfdir, secure_filename(pdfname))
     thumbpath = make_thumb(pdfpath, maxgeometry)
-    with open(thumbpath, 'r') as imgfile:
+    with open(thumbpath, 'rb') as imgfile:
         return Response(imgfile.read(), mimetype="image/png")
 
 
@@ -425,6 +438,7 @@ def pdfthumbnail(pdfname, maxgeometry):
 def tplthumbnail(tplname, maxgeometry):
     pdfpath = os.path.join(config.cachedir, secure_filename(tplname) + '.pdf')
     try:
+        print('pdflatex\n')
         run_pdflatex(
             {'textemplate': secure_filename(tplname),
              'img': 'pictograms-nps-misc-camera.png',
@@ -436,17 +450,20 @@ def tplthumbnail(tplname, maxgeometry):
              }, pdfpath, overwrite=False
         )
     except Exception as e:
+        print(str(e))
         return str(e)
     else:
+        print('pdflatex2\n')
         thumbpath = make_thumb(pdfpath, maxgeometry)
-        with open(thumbpath, 'r') as imgfile:
-            return Response(imgfile.read(), mimetype="image/png")
+    return send_file(thumbpath, mimetype="image/png")
+    #    with open(thumbpath, 'rb') as imgfile:
+    #        return Response(imgfile.read(), mimetype="image/png")
 
 
 @app.route('/pdfdownload/<pdfname>')
 def pdfdownload(pdfname):
     pdfpath = os.path.join(config.pdfdir, secure_filename(pdfname))
-    with open(pdfpath, 'r') as pdffile:
+    with open(pdfpath, 'rb') as pdffile:
         return Response(pdffile.read(), mimetype="application/pdf")
 
 

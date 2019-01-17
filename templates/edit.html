@@ -1,24 +1,18 @@
 <!DOCTYPE html>
-<!-- <html xmlns="http://www.w3.org/1999/xhtml" > -->
 <html>
 <head>
     <link rel='stylesheet' type='text/css' href="{{ url_for('static', filename='main.css') }}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <!--script src="{{url_for('static', filename='script.js')}} "/-->
+    <script src="{{url_for('static', filename='script.js')}} "></script>
     <title>Schildergenerator</title>
 </head>
 <body>
-    test
     {% set messages = get_flashed_messages(with_categories=True) %}
     {% if messages %}
         <ul class="flashes">
             {% for category,message in messages %}
                 <li class="{{ category }}" tabindex="0">{{ message }}</li>
             {%endfor%}
-        </ul>
-    {%else%}
-        <ul class="flashes">
-         keine nachricht
         </ul>
     {%endif%}
 
@@ -27,11 +21,11 @@
     <form method="post" action="{{ url_for('create') }}" enctype="multipart/form-data">
         <div class="box">
            <label>Wähle eine TeX-Vorlage:</label>
-           <ul py:attrs="{'class':'collapsed'} if defined('form') else {}">
+           <ul class="{{'collapsed' if form}}">
                 
-                {% for textemplate in templates %}
+                {% for textemplate in data['templates'] %}
                 <li>
-                    <input type="radio" name="textemplate" id="tpl:{{textemplate}}" value="{{textemplate}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if defined('form') and textemplate == form.textemplate else {}"/>
+                    <input type="radio" name="textemplate" id="tpl:{{textemplate}}" value="{{textemplate}}" checked="{{'checked' if form and textemplate == form.textemplate else ''}}" onfocus="{{'this.parentElement.parentElement.className=\'\';' if form and textemplate == form.textemplate else ''}}"/>
                     <label for="tpl:{{textemplate}}"><img src="{{ url_for('tplthumbnail', tplname=textemplate, maxgeometry=80)}}" alt="{{textemplate}}" title="{{textemplate}}"/></label>
                 </li>
                 {%endfor%}
@@ -42,13 +36,7 @@
            <div class="collapsed">
                 <button class="onlywhencollapsed" onclick="this.parentElement.className=''; return false;" >Erweiterte Einstellungen</button>
                 <label for="form:footer">Footer Text</label>
-                <textarea name="footer" id="form:footer" cols="35" rows="5">
-                {%if form %}
-                    {{form.footer}}
-                {%else%}
-                    {{data['standard_footer']}}
-                {%endif%}
-                </textarea>
+                <textarea name="footer" id="form:footer" cols="35" rows="5">{{ form.footer if form else data['standard_footer'] }}</textarea>
                 
                 <label for="form:logo">Wähle ein Logo:</label>
                 <ul>
@@ -90,11 +78,7 @@
         </div><br/>
         <div class="box">
             <label for="form:headline">Überschrift</label>
-            <textarea name="headline" id="form:headline" cols="35" rows="5">
-            {%if form%}
-                {{form.headline}}
-            {%endif%}    
-            </textarea>
+            <textarea name="headline" id="form:headline" cols="35" rows="5">{{ form.headline if form }}</textarea>
         </div>
         <div class="box">
            <label for="form:text">Text</label>
@@ -102,18 +86,14 @@
                 <option value="latex" py:attrs="{'selected':'True'} if defined('form') and form.markup == 'latex' else {}">LaTeX</option>
                 <option value="rst" py:attrs="{'selected':'True'} if not defined('form') or form.markup == 'rst' or form.markup == '' else {}">Wiki (reStructuredText)</option>
            </select>
-           <textarea name="text" id="form:text" cols="35" rows="5">
-           {%if form%}
-                {{form.text}}
-            {%endif%}
-            </textarea>
+           <textarea name="text" id="form:text" cols="35" rows="5">{{ form.text if form}}</textarea>
         </div>
         <br/>
         <div class="box imageselect">
             <label for="form:img">Wähle ein Bild (falls auf Vorlage anwendbar):</label>
             <ul>
                 <li>
-                    <input type="radio" name="img" id="img--none" value="__none" py:attrs="{'checked':'checked'} if defined('form') and form.img == '__none' else {}"/>
+                    <input type="radio" name="img" id="img--none" value="__none" {{'checked="checked"' if not form or form.img == '__none'}}"/>
                     <label for="img--none">Kein Bild</label>
                 </li>
                 <li style="display:block">
@@ -122,14 +102,16 @@
                     <label for="img--upload">Bild hochladen ({{', '.join(imageextensions)}})</label>
                     <ul class="onlywhenupload">
                         <label for="img--cat">Wähle eine Kategorie:</label>
-                        <li py:for="key in images.keys()">
+                        {% for key in data['images'].keys() %}
+                        <li>
                            <input type="radio" name="img--cat" id="img--cat:{{key}}" value="{{key}}" py:attrs="{'checked':'checked'} if key=='none' else {}"/> 
                            <label for="img--cat:{{key}}">{{key}}</label>
                         </li>
+                        {%endfor%}
                         <li style="display:ruby">
                            <input type="radio" name="img--cat" id="img--cat:user" value="__user"/> 
                            <label for="img--cat:user">Benutzerdefiniert:</label>
-                           <textarea name="usercat" id="img--cat:usertext" cols="32" rows="1" onclick="document.getElementById('img--cat:user').checked = 'checked'"/>
+                           <textarea name="usercat" id="img--cat:usertext" cols="32" rows="1" onclick="document.getElementById('img--cat:user').checked = 'checked'"></textarea>
                         </li>
                     </ul>
                 </li>
@@ -144,13 +126,14 @@
                     <ul class="collapsed">
                     {% for img in data['images'][key]%}
                         <li>
-                            <!-- key == 'none' -->
+                            {% if key == 'none' %}
                             <input py:if="key!='none'" type="radio" name="img" id="img:{{img}}" value="{{key + '/' + img}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if defined('form') and key in form.img and img in form.img else {}"/>
                             
-
+                            {%else%}
                             
                             <!-- else-->
                             <input py:if="key=='none'" type="radio" name="img" id="img:{{img}}" value="{{img}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if defined('form') and form.img == img else {}"/>
+                            {%endif%}
                             
                             <label for="img:{{img}}"><img src="{{url_for('thumbnail', imgname=img, category=key, maxgeometry=100)}}" alt="{{img}}" title="{{img}}"/></label>
                         </li>

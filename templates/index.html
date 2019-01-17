@@ -1,32 +1,35 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:py="http://genshi.edgewall.org/">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <link rel='stylesheet' type='text/css' href="${ url_for('static', filename='main.css') }"/>
+    <link rel='stylesheet' type='text/css' href="{{ url_for('static', filename='main.css') }}"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1"/>
 	<title>Schildergenerator</title>
 </head>
 <body>
-	<py:with vars="messages = get_flashed_messages(with_categories=True)">
-  		<ul class="flashes" py:if="messages">
-			<li class="${ category }" py:for="category,message in messages" tabindex="0">${ message }</li>
-		</ul>
-	</py:with>
+	{% set messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for category,message in messages %}
+                <li class="{{ category }}" tabindex="0">{{ message }}</li>
+            {%endfor%}
+        </ul>
+    {%endif%}
 	
-	<a href="${ url_for('edit') }">Neues Schild</a>
-	
-	<py:if test="defined('files')">
-	<form method="POST" action="${ url_for('deletelist') }">
-	<ul>
-		<li py:for="file in files">
-                <input id="form:${file}" type="checkbox" name="filenames" value="${file}"/>
-                <a href="${ url_for('schild', filename=file) }" title="${file}">
-                    <img src="${ url_for('pdfthumbnail', pdfname=file+'.pdf', maxgeometry=150) }"/>
+	<a href="{{ url_for('edit')}}">Neues Schild</a>
+	{% if data['files'] %}
+	<form method="POST" action="{{ url_for('deletelist') }}">
+	    <ul>
+	        {% for file in data['files'] %}
+	    	<li>
+                <input id="form:{{file}}" type="checkbox" name="filenames" value="{{file}}"/>
+                <a href="{{ url_for('schild', filename=file) }}" title="{{file}}">
+                    <img src="{{ url_for('pdfthumbnail', pdfname=file+'.pdf', maxgeometry=150) }}"/>
                 </a>
             </li>
-	</ul>
-            <input type="submit" value="Ausgewählte Schilder löschen"/>
-        </form>
-	</py:if>
+            {%endfor%}
+	    </ul>
+        <input type="submit" value="Ausgewählte Schilder löschen"/>
+    </form>
+	{%endif%}
 </body>
 </html>
