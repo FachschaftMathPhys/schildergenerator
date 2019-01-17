@@ -126,7 +126,7 @@
                     <ul class="collapsed">
                     {% for img in data['images'][key]%}
                         <li>
-                            {% if key == 'none' %}
+                            {% if key != 'none' %}
                             <input py:if="key!='none'" type="radio" name="img" id="img:{{img}}" value="{{key + '/' + img}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if defined('form') and key in form.img and img in form.img else {}"/>
                             
                             {%else%}

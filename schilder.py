@@ -123,7 +123,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     if 'img' in context.keys() and context['img'] and context['img'] != '__none':
         try:
             source = os.path.join(config.imagedir, context['img'])
-            
+            flash(context['img'])
             filename = os.path.split(context['img'])[1]
             context['img'] = filename
             
