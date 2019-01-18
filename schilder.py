@@ -25,9 +25,6 @@ import subprocess
 from subprocess import CalledProcessError, STDOUT
 
 
-
-#TODO ersetze durch wand
-#import PythonMagick
 import wand
 from wand.image import Image
 
@@ -35,8 +32,6 @@ import json
 import tempfile
 import config
 
-#import os
-#os.environ["PYTHONIOENCODING"] = "utf-8"
 
 app = Flask(__name__)
 app.config.update(
@@ -49,11 +44,6 @@ app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 
 app.secret_key = config.app_secret
-#genshi = Genshi(app)
-#genshi.extensions['html'] = 'html5'
-
-#print(app.jinja_env.loader)
-
 
 
 def check_output(*popenargs, **kwargs):
@@ -106,7 +96,6 @@ def save_data(formdata, outfilename):
         json.dump(formdata, outfile)
     
 def run_pdflatex(context, outputfilename, overwrite=True):
-    print('test')
     if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
         context['textemplate'] = "text-image-quer.tex"
     genshitex = TemplateLoader([config.textemplatedir])
@@ -123,7 +112,6 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     if 'img' in context.keys() and context['img'] and context['img'] != '__none':
         try:
             source = os.path.join(config.imagedir, context['img'])
-            flash(context['img'])
             filename = os.path.split(context['img'])[1]
             context['img'] = filename
             
@@ -136,7 +124,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         except:
             raise IOError("COULD NOT COPY IMAGE")
     else:
-        # print "MEH No image"
+        # print( "MEH No image")
         pass
     
     #wenn vorlage ein logo enthält: kopiere logo nach temp   
@@ -156,7 +144,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         except:
             raise IOError("COULD NOT COPY LOGO")
     else:
-        # print "MEH No logo"
+        # print( "MEH No logo")
         pass
     
     
@@ -174,7 +162,6 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         if overwrite:
             try:
                 flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % e.output), 'log')
-                print(e.output)
             except:
                 print(e.output)
         raise SyntaxWarning("PDFLaTeX bailed out")
@@ -183,10 +170,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     if overwrite:
         try:
             flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % texlog), 'log')
-            print(texlog) #DEBUG
         except:
             print(texlog)
-    print('pdflatex3')
     shutil.copy(tmppdffile, outputfilename)
     shutil.rmtree(tmpdir)
 
@@ -202,12 +187,11 @@ def save_and_convert_image_upload(inputname,folder):
         filename = os.path.join(
             config.uploaddir, secure_filename(imgfile.filename))
         imgfile.save(filename)
-        #TODO wand
-        img = PythonMagick.Image(filename)
+        img = Image(filename=str(filename))
         imgname = os.path.splitext(secure_filename(imgfile.filename))[
             0].replace('.', '_') + '.png'
         savedfilename = os.path.join(folder, imgname)
-        img.write(str(savedfilename))
+        img.save(filenmane=str(savedfilename))
         os.remove(filename)
         return imgname
     return None
@@ -252,7 +236,7 @@ def edit(**kwargs):
                          for f in sorted(templatelist)]
     data['imageextensions'] = config.allowed_extensions
     
-    #TODO GENSCHI
+
     return render_template('edit.html',data=data)
 
 
