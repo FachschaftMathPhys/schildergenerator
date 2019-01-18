@@ -225,6 +225,7 @@ def index(**kwargs):
 def edit(**kwargs):
     data = defaultdict(str)
     data.update(**kwargs)
+    print(data)
     #imagelist = sorted(glob.glob(config.imagedir + '/*.png')) #TODO
     #data['images'] = [os.path.basename(f) for f in imagelist] #TODO
     data['images'] = generateImagelist()
