@@ -7,12 +7,6 @@ import os
 import os.path
 import glob
 
-
-#TODO ersetze durch jinja
-#from genshi.template import TemplateLoader
-#from genshi.template.text import NewTextTemplate
-#from flaskext.genshi import Genshi, render_response
-
 import jinja2
 from jinja2 import Template
 
@@ -116,9 +110,7 @@ def load_tex_template(name):
 def run_pdflatex(context, outputfilename, overwrite=True):
     #if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
     #    context['textemplate'] = "text-image-quer.tex"
-    #genshitex = TemplateLoader([config.textemplatedir])
-    #template = genshitex.load(
-    #    context['textemplate'], cls=NewTextTemplate, encoding='utf8')
+
     template = load_tex_template( context['textemplate'])
     
     if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(os.path.join(config.textemplatedir,context['textemplate'])) < os.path.getmtime(outputfilename):

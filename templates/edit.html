@@ -26,7 +26,7 @@
 				
 				{% for textemplate in data['templates'] %}
 				<li>
-					<input type="radio" name="textemplate" id="tpl:{{textemplate}}" value="{{textemplate}}" checked="{{'checked' if form and textemplate == form.textemplate else ''}}" onfocus="{{'this.parentElement.parentElement.className=\'\';' if form and textemplate == form.textemplate else ''}}"/>
+					<input type="radio" name="textemplate" id="tpl:{{textemplate}}" value="{{textemplate}}" {{'checked="checked" onfocus="this.parentElement.parentElement.className=\'\';"' if form and textemplate == form.textemplate}}/>
 					<label for="tpl:{{textemplate}}"><img src="{{ url_for('tplthumbnail', tplname=textemplate, maxgeometry=80)}}" alt="{{textemplate}}" title="{{textemplate}}"/></label>
 				</li>
 				{%endfor%}
@@ -42,7 +42,7 @@
 				<label for="form:logo">Wähle ein Logo:</label>
 				<ul>
 					<li>
-						<input type="radio" name="logo" id="logo--none" value="__none" py:attrs="{'checked':'checked'} if defined('form') and form.logo == '__none' else {}"/>
+						<input type="radio" name="logo" id="logo--none" value="__none" {{'checked="checked"' if form and form.logo == '__none'}}/>
 						<label for="logo--none">Kein Logo</label>
 					</li>
 					<li>
@@ -84,8 +84,8 @@
 		<div class="box">
 		   <label for="form:text">Text</label>
 		   <select name="markup">
-				<option value="latex" py:attrs="{'selected':'True'} if defined('form') and form.markup == 'latex' else {}">LaTeX</option>
-				<option value="rst" py:attrs="{'selected':'True'} if not defined('form') or form.markup == 'rst' or form.markup == '' else {}">Wiki (reStructuredText)</option>
+				<option value="latex" {{'selected="True"' if form and form.markup == 'latex'}}>LaTeX</option>
+				<option value="rst" {{'selected="True"}' if not form or form.markup == 'rst' or form.markup == '' }}>Wiki (reStructuredText)</option>
 		   </select>
 		   <textarea name="text" id="form:text" cols="35" rows="5">{{ form.text if form}}</textarea>
 		</div>
@@ -105,7 +105,7 @@
 						<label for="img--cat">Wähle eine Kategorie:</label>
 						{% for key in data['images'].keys() %}
 						<li>
-						   <input type="radio" name="img--cat" id="img--cat:{{key}}" value="{{key}}" py:attrs="{'checked':'checked'} if key=='none' else {}"/> 
+						   <input type="radio" name="img--cat" id="img--cat:{{key}}" value="{{key}}" {{'checked="checked"' if key=='none'}}/> 
 						   <label for="img--cat:{{key}}">{{key}}</label>
 						</li>
 						{%endfor%}
@@ -117,7 +117,6 @@
 					</ul>
 				</li>
 			</ul>
-			<!--<ul py:attrs="{'class':'collapsed'} if defined('form') else {}">	  -->
 			<ul class="category">
 				
 				{%for key in data['images'].keys()%}
