@@ -34,7 +34,7 @@
 	<a href="{{ url_for('pdfdownload', pdfname=data['filename'] + '.pdf') }}">Schild als PDF herunterladen.</a>
 	<a href="{{ url_for('edit_one', filename=data['filename']) }}">Schild bearbeiten/als Vorlage verwenden.</a>
 	<form method="post" action="{{ url_for('delete') }}">
-		<input type="hidden" name="data['filename']" value="{{filename}}" />
+		<input type="hidden" name="filename" value="{{data['filename']}}" />
 		<input type="submit" value="Schild löschen" />
 	</form>
 </body>

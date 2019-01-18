@@ -61,10 +61,10 @@
 							{%for img in data['logos'][key] %}
 							<li>
 								{% if key != 'none'%}
-								<input type="radio" name="logo" id="logo:{{img}}" value="{{key + '/' + img}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if ((defined('form') and form.logo == img) or ( img == standartLogo)) else {}"/>
+								<input type="radio" name="logo" id="logo:{{img}}" value="{{key + '/' + img}}" {{'checked="checked" onfocus="this.parentElement.parentElement.className=\'\';"' if form and form.logo == img}}/>
 								{%else%}
 								<!-- else-->
-								<input type="radio" name="logo" id="logo:{{img}}" value="{{img}}" py:attrs="{'checked':'checked', 'onfocus':'this.parentElement.parentElement.className=\'\';'} if ((defined('form') and form.logo == img) or ( img == standartLogo)) else {}"/>
+								<input type="radio" name="logo" id="logo:{{img}}" value="{{img}}" {{'checked="checked" onfocus="this.parentElement.parentElement.className=\'\';"' if data['standard_logo'] == img}}/>
 								{%endif%}
 								<label for="logo:{{img}}"><img src="{{url_for('logothumbnail', imgname=img, category=key, maxgeometry=100)}}" alt="{{img}}" title="{{img}}"/></label>
 							</li>
@@ -132,7 +132,7 @@
 							
 							{%else%}
 							
-							<input type="radio" name="img" id="img:{{img}}" value="{{key + '/' + img}}" {{'checked="checked" onfocus="this.parentElement.parentElement.className=\'\';"' if form and img in form.img }}/>
+							<input type="radio" name="img" id="img:{{img}}" value="{{ img}}" {{'checked="checked" onfocus="this.parentElement.parentElement.className=\'\';"' if form and img in form.img }}/>
 							{%endif%}
 							
 							<label for="img:{{img}}"><img src="{{url_for('thumbnail', imgname=img, category=key, maxgeometry=100)}}" alt="{{img}}" title="{{img}}"/></label>

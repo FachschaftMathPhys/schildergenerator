@@ -111,6 +111,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     #wenn die vorlage ein bild enthält: kopiere bild nach temp
     if 'img' in context.keys() and context['img'] and context['img'] != '__none':
         try:
+            if not context['img']:
+                flash('trest')
             source = os.path.join(config.imagedir, context['img'])
             filename = os.path.split(context['img'])[1]
             context['img'] = filename
