@@ -9,9 +9,9 @@ import glob
 
 
 #TODO ersetze durch jinja
-from genshi.template import TemplateLoader
-from genshi.template.text import NewTextTemplate
-from flaskext.genshi import Genshi, render_response
+#from genshi.template import TemplateLoader
+#from genshi.template.text import NewTextTemplate
+#from flaskext.genshi import Genshi, render_response
 
 import jinja2
 from jinja2 import Template
@@ -94,14 +94,34 @@ def load_data(filename):
 def save_data(formdata, outfilename):
     with open(os.path.join(config.datadir, outfilename), 'w') as outfile:
         json.dump(formdata, outfile)
+
+def load_tex_template(name):
+    latex_jinja_env = jinja2.Environment(
+	    #block_start_string = '\BLOCK{',
+	    #block_end_string = '}',
+	    variable_start_string = '${',
+	    variable_end_string = '}',
+	    #comment_start_string = '\#{',
+	    #comment_end_string = '}',
+	    #line_statement_prefix = '%%:',
+	    #line_comment_prefix = '%%',
+	    trim_blocks = True,
+	    autoescape = False,
+	    loader = jinja2.FileSystemLoader(config.textemplatedir)
+    )  
+    template = latex_jinja_env.get_template(name)
+    return template
+    #template = template.render(data=data,load=load_template)
     
 def run_pdflatex(context, outputfilename, overwrite=True):
-    if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
-        context['textemplate'] = "text-image-quer.tex"
-    genshitex = TemplateLoader([config.textemplatedir])
-    template = genshitex.load(
-        context['textemplate'], cls=NewTextTemplate, encoding='utf8')
-    if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(template.filepath) < os.path.getmtime(outputfilename):
+    #if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
+    #    context['textemplate'] = "text-image-quer.tex"
+    #genshitex = TemplateLoader([config.textemplatedir])
+    #template = genshitex.load(
+    #    context['textemplate'], cls=NewTextTemplate, encoding='utf8')
+    template = load_tex_template( context['textemplate'])
+    
+    if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(os.path.join(config.textemplatedir,context['textemplate'])) < os.path.getmtime(outputfilename):
         return
     if context['markup'] == 'rst':
         context['text'] = publish_parts(context['text'], writer_name='latex')['body']
@@ -152,8 +172,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     
     tmptexfile = os.path.join(tmpdir, 'output.tex')
     tmppdffile = os.path.join(tmpdir, 'output.pdf')
-    with open(tmptexfile, 'wb') as texfile:
-        texfile.write(template.generate(form=context).render(encoding='utf8'))
+    with open(tmptexfile, 'w') as texfile:
+        texfile.write(template.render(form=context))
     cwd = os.getcwd()
     os.chdir(tmpdir)
     os.symlink(config.texsupportdir, os.path.join(tmpdir, 'support'))
@@ -227,7 +247,6 @@ def index(**kwargs):
 def edit(**kwargs):
     data = defaultdict(str)
     data.update(**kwargs)
-    print(data)
     #imagelist = sorted(glob.glob(config.imagedir + '/*.png')) #TODO
     #data['images'] = [os.path.basename(f) for f in imagelist] #TODO
     data['images'] = generateImagelist()
@@ -250,7 +269,6 @@ def edit_one(filename):
 
 @app.route('/create', methods=['POST'])
 def create():
-    print('post:create')
     if request.method == 'POST':
         formdata = defaultdict(str, request.form.to_dict(flat=True))
         for a in ('headline', 'text'):
@@ -407,7 +425,6 @@ def logothumbnail(imgname,category, maxgeometry):
         imgpath = os.path.join(config.logodir, category + '/' +secure_filename( imgname))
     thumbpath = make_thumb(imgpath, maxgeometry)
     with open(thumbpath, 'rb') as imgfile:
-        #print(imgfile)
         return Response(imgfile.read(), mimetype="image/png")
 
 
@@ -440,7 +457,6 @@ def tplthumbnail(tplname, maxgeometry):
         print(str(e))
         return str(e)
     else:
-        print('pdflatex2\n')
         thumbpath = make_thumb(pdfpath, maxgeometry)
     return send_file(thumbpath, mimetype="image/png")
     #    with open(thumbpath, 'rb') as imgfile:

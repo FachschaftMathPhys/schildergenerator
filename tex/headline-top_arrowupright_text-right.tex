@@ -5,11 +5,11 @@
 %Standart übernehmen falls kein fottertext übergeben wird
 {% if form.footer %}
 	\renewcommand{\footer}{${form.footer}}
-{% end %}
+{%endif%}
 
 {% if form.logo %}
 	\renewcommand{\mylogo}{${form.logo}}
-{% end %}
+{%endif%}
 
 
 \begin{document}
