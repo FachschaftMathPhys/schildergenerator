@@ -108,23 +108,18 @@ def load_tex_template(name):
     #template = template.render(data=data,load=load_template)
     
 def run_pdflatex(context, outputfilename, overwrite=True):
-    #if not 'textemplate' in context.keys(): #context.has_key('textemplate'):
-    #    context['textemplate'] = "text-image-quer.tex"
-
+    if not 'textemplate' in context.keys() or context['textemplate'] == '': #context.has_key('textemplate'):
+        context['textemplate'] = "image-left_bothtext-right.tex"
     template = load_tex_template( context['textemplate'])
-    
     if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(os.path.join(config.textemplatedir,context['textemplate'])) < os.path.getmtime(outputfilename):
         return
     if context['markup'] == 'rst':
         context['text'] = publish_parts(context['text'], writer_name='latex')['body']
         #context['headline'] = publish_parts(context['headline'], writer_name='latex')['body']
     tmpdir = tempfile.mkdtemp(dir=config.tmpdir)
-    
     #wenn die vorlage ein bild enthält: kopiere bild nach temp
     if 'img' in context.keys() and context['img'] and context['img'] != '__none':
         try:
-            if not context['img']:
-                flash('trest')
             source = os.path.join(config.imagedir, context['img'])
             filename = os.path.split(context['img'])[1]
             context['img'] = filename
@@ -190,9 +185,8 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     shutil.rmtree(tmpdir)
 
 def save_and_convert_image_upload(inputname,folder):
-    
+    flash('test')
     imgfile = request.files[inputname]
-    
     if imgfile:
         if not allowed_file(imgfile.filename):
             raise UserWarning(
@@ -205,7 +199,7 @@ def save_and_convert_image_upload(inputname,folder):
         imgname = os.path.splitext(secure_filename(imgfile.filename))[
             0].replace('.', '_') + '.png'
         savedfilename = os.path.join(folder, imgname)
-        img.save(filenmane=str(savedfilename))
+        img.save(filename=str(savedfilename))
         os.remove(filename)
         return imgname
     return None
@@ -263,8 +257,7 @@ def edit_one(filename):
 def create():
     if request.method == 'POST':
         formdata = defaultdict(str, request.form.to_dict(flat=True))
-        for a in ('headline', 'text'):
-            formdata[a] = formdata[a]
+        
         try:
             
             #Bild upload
@@ -289,9 +282,12 @@ def create():
                     os.makedirs(imagedir)
             #prüfe ob bild hochgeladen wurde und speichere es
             imgpath = None
-            if formdata['imgupload']:
+            
+            if formdata['img'] == '__upload':
+            #if formdata['imgupload']:
                 imgpath = save_and_convert_image_upload('imgupload',imagedir)
-            #if imgpath is not None:
+                flash(imgpath)
+            if imgpath is not None:
                 if(category != 'none'):
                     formdata['img'] =  os.path.join(category,imgpath)
                 else:
@@ -300,9 +296,9 @@ def create():
             
             #logo upload
             logopath = None
-            if formdata['logoupload']:
+            if formdata['logo'] == '__upload':
                 logopath = save_and_convert_image_upload('logoupload',config.logodir)
-            #if logopath is not None:
+            if logopath is not None:
                 formdata['logo'] = logopath
             
             outfilename = secure_filename(formdata['headline'][:16]) + str(hash(formdata['headline'] + formdata[
@@ -313,6 +309,7 @@ def create():
             formdata['filename'] = outfilename
             formdata['pdfname'] = outpdfname
             save_data(formdata, outfilename)
+            flash('test' + str(formdata['img']))
             run_pdflatex(formdata, os.path.join(config.pdfdir, outpdfname))
             try:
                 flash(Markup(u"""PDF created and data saved. You might create another one. Here's a preview. Click to print.<br/>
