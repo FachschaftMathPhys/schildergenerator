@@ -41,7 +41,7 @@ logodir = imagedir + '/logo'
 standartLogo = 'genericlogo.png'
 
 #Footer 
-standartFooter = 'Hier könnte Ihr Footer stehen'
+standartFooter = u'Hier könnte Ihr Footer stehen'
 
 # Cache dir (needs to be writable)
 cachedir = datadir + '/cache'
