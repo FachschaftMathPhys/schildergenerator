@@ -185,7 +185,6 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     shutil.rmtree(tmpdir)
 
 def save_and_convert_image_upload(inputname,folder):
-    flash('test')
     imgfile = request.files[inputname]
     if imgfile:
         if not allowed_file(imgfile.filename):
@@ -286,7 +285,6 @@ def create():
             if formdata['img'] == '__upload':
             #if formdata['imgupload']:
                 imgpath = save_and_convert_image_upload('imgupload',imagedir)
-                flash(imgpath)
             if imgpath is not None:
                 if(category != 'none'):
                     formdata['img'] =  os.path.join(category,imgpath)
@@ -309,7 +307,6 @@ def create():
             formdata['filename'] = outfilename
             formdata['pdfname'] = outpdfname
             save_data(formdata, outfilename)
-            flash('test' + str(formdata['img']))
             run_pdflatex(formdata, os.path.join(config.pdfdir, outpdfname))
             try:
                 flash(Markup(u"""PDF created and data saved. You might create another one. Here's a preview. Click to print.<br/>
@@ -431,7 +428,6 @@ def pdfthumbnail(pdfname, maxgeometry):
 def tplthumbnail(tplname, maxgeometry):
     pdfpath = os.path.join(config.cachedir, secure_filename(tplname) + '.pdf')
     try:
-        print('pdflatex\n')
         run_pdflatex(
             {'textemplate': secure_filename(tplname),
              'img': 'pictograms-nps-misc-camera.png',
