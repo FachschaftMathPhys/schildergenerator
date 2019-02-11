@@ -159,7 +159,7 @@ def run_pdflatex(context, outputfilename, overwrite=True):
     
     tmptexfile = os.path.join(tmpdir, 'output.tex')
     tmppdffile = os.path.join(tmpdir, 'output.pdf')
-    with open(tmptexfile, 'w') as texfile:
+    with open(tmptexfile, 'w',encoding='utf-8') as texfile:
         texfile.write(template.render(form=context))
     cwd = os.getcwd()
     os.chdir(tmpdir)
