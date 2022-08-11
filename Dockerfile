@@ -12,10 +12,10 @@ ADD . /app
 
 #install nginx and wand
 RUN apt-get update && apt-get install -y \
-libmagickwand-dev \
-#nginx \
-python3 \
-python3-pip 
+    libmagickwand-dev \
+    #nginx \
+    # python3 \ # Included in python:3.9-slim image
+    python3-pip 
 
 #latex
 #texlive \
@@ -29,7 +29,10 @@ python3-pip
 
 
 # Install any needed packages specified in requirements.txt
-RUN pip3 install --trusted-host pypi.python.org -r requirements.txt
+RUN pip install -r requirements.txt
+
+# Add Image-magick policy file in order to allow working pdfs
+COPY ./image-magick-policy.xml /etc/ImageMagick-6/policy.xml
 
 # Make port 5432 available to the world outside this container
 EXPOSE 5432
