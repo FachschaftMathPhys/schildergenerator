@@ -18,7 +18,6 @@ import shutil
 import subprocess
 from subprocess import CalledProcessError, STDOUT
 
-
 import wand
 from wand.image import Image
 
@@ -26,13 +25,10 @@ import json
 import tempfile
 import config
 
-
 app = Flask(__name__)
-app.config.update(
-    UPLOAD_FOLDER = config.uploaddir,
-    PROPAGATE_EXCEPTIONS = True,
-    MAX_CONTENT_LENGTH = 8388608
-)
+app.config.update(UPLOAD_FOLDER=config.uploaddir,
+                  PROPAGATE_EXCEPTIONS=True,
+                  MAX_CONTENT_LENGTH=8388608)
 
 app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
@@ -74,8 +70,11 @@ def check_output(*popenargs, **kwargs):
         #raise Exception(output)
     return output
 
+
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] in config.allowed_extensions
+    return '.' in filename and filename.rsplit(
+        '.', 1)[1] in config.allowed_extensions
+
 
 def load_data(filename):
     with open(os.path.join(config.datadir, filename), 'r') as infile:
@@ -84,93 +83,101 @@ def load_data(filename):
         if len(formdata['markup']) < 1:
             formdata['markup'] = 'latex'
         return formdata
-        
+
+
 def save_data(formdata, outfilename):
     with open(os.path.join(config.datadir, outfilename), 'w') as outfile:
         json.dump(formdata, outfile)
 
+
 def load_tex_template(name):
     latex_jinja_env = jinja2.Environment(
-	    #block_start_string = '\BLOCK{',
-	    #block_end_string = '}',
-	    variable_start_string = '${',
-	    variable_end_string = '}',
-	    #comment_start_string = '\#{',
-	    #comment_end_string = '}',
-	    #line_statement_prefix = '%%:',
-	    #line_comment_prefix = '%%',
-	    trim_blocks = True,
-	    autoescape = False,
-	    loader = jinja2.FileSystemLoader(config.textemplatedir)
-    )  
+        #block_start_string = '\BLOCK{',
+        #block_end_string = '}',
+        variable_start_string='${',
+        variable_end_string='}',
+        #comment_start_string = '\#{',
+        #comment_end_string = '}',
+        #line_statement_prefix = '%%:',
+        #line_comment_prefix = '%%',
+        trim_blocks=True,
+        autoescape=False,
+        loader=jinja2.FileSystemLoader(config.textemplatedir))
     template = latex_jinja_env.get_template(name)
     return template
     #template = template.render(data=data,load=load_template)
-    
+
+
 def run_pdflatex(context, outputfilename, overwrite=True):
-    if not 'textemplate' in context.keys() or context['textemplate'] == '': #context.has_key('textemplate'):
+    if not 'textemplate' in context.keys(
+    ) or context['textemplate'] == '':  #context.has_key('textemplate'):
         context['textemplate'] = "image-left_bothtext-right.tex"
-    template = load_tex_template( context['textemplate'])
-    if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(os.path.join(config.textemplatedir,context['textemplate'])) < os.path.getmtime(outputfilename):
+    template = load_tex_template(context['textemplate'])
+    if not overwrite and os.path.isfile(outputfilename) and os.path.getmtime(
+            os.path.join(
+                config.textemplatedir,
+                context['textemplate'])) < os.path.getmtime(outputfilename):
         return
     if context['markup'] == 'rst':
-        context['text'] = publish_parts(context['text'], writer_name='latex')['body']
+        context['text'] = publish_parts(context['text'],
+                                        writer_name='latex')['body']
         #context['headline'] = publish_parts(context['headline'], writer_name='latex')['body']
     tmpdir = tempfile.mkdtemp(dir=config.tmpdir)
     #wenn die vorlage ein bild enthält: kopiere bild nach temp
-    if 'img' in context.keys() and context['img'] and context['img'] != '__none':
+    if 'img' in context.keys(
+    ) and context['img'] and context['img'] != '__none':
         try:
             source = os.path.join(config.imagedir, context['img'])
             filename = os.path.split(context['img'])[1]
             context['img'] = filename
-            
+
             #create destinationfolder if not exist
-            dest =  os.path.join(tmpdir,filename )
+            dest = os.path.join(tmpdir, filename)
 
             shutil.copy(source, dest)
-            
-            
+
         except:
             raise IOError("COULD NOT COPY IMAGE")
     else:
         # print( "MEH No image")
         pass
-    
-    #wenn vorlage ein logo enthält: kopiere logo nach temp   
-    if 'logo' in context.keys() and context['logo'] and context['logo'] != '__none':
+
+    #wenn vorlage ein logo enthält: kopiere logo nach temp
+    if 'logo' in context.keys(
+    ) and context['logo'] and context['logo'] != '__none':
         try:
             source = os.path.join(config.logodir, context['logo'])
-            
+
             filename = os.path.split(context['logo'])[1]
             context['logo'] = filename
-            
+
             #create destinationfolder if not exist
-            dest =  os.path.join(tmpdir,filename )
+            dest = os.path.join(tmpdir, filename)
 
             shutil.copy(source, dest)
-            
-            
+
         except:
             raise IOError("COULD NOT COPY LOGO")
     else:
         # print( "MEH No logo")
         pass
-    
-    
+
     tmptexfile = os.path.join(tmpdir, 'output.tex')
     tmppdffile = os.path.join(tmpdir, 'output.pdf')
-    with open(tmptexfile, 'w',encoding='utf-8') as texfile:
+    with open(tmptexfile, 'w', encoding='utf-8') as texfile:
         texfile.write(template.render(form=context))
     cwd = os.getcwd()
     os.chdir(tmpdir)
     os.symlink(config.texsupportdir, os.path.join(tmpdir, 'support'))
     try:
-        texlog = check_output(
-            ['pdflatex', '--halt-on-error', tmptexfile], stderr=STDOUT)
+        texlog = check_output(['pdflatex', '--halt-on-error', tmptexfile],
+                              stderr=STDOUT)
     except CalledProcessError as e:
         if overwrite:
             try:
-                flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % e.output), 'log')
+                flash(
+                    Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % e.output),
+                    'log')
             except:
                 print(e.output)
         raise SyntaxWarning("PDFLaTeX bailed out")
@@ -178,25 +185,27 @@ def run_pdflatex(context, outputfilename, overwrite=True):
         os.chdir(cwd)
     if overwrite:
         try:
-            flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % texlog), 'log')
+            flash(Markup("<p>PDFLaTeX Output:</p><pre>%s</pre>" % texlog),
+                  'log')
         except:
             print(texlog)
     shutil.copy(tmppdffile, outputfilename)
     shutil.rmtree(tmpdir)
 
-def save_and_convert_image_upload(inputname,folder):
+
+def save_and_convert_image_upload(inputname, folder):
     imgfile = request.files[inputname]
     if imgfile:
         if not allowed_file(imgfile.filename):
             raise UserWarning(
                 "Uploaded image is not in the list of allowed file types.")
-        
-        filename = os.path.join(
-            config.uploaddir, secure_filename(imgfile.filename))
+
+        filename = os.path.join(config.uploaddir,
+                                secure_filename(imgfile.filename))
         imgfile.save(filename)
         img = Image(filename=str(filename))
-        imgname = os.path.splitext(secure_filename(imgfile.filename))[
-            0].replace('.', '_') + '.png'
+        imgname = os.path.splitext(secure_filename(
+            imgfile.filename))[0].replace('.', '_') + '.png'
         savedfilename = os.path.join(folder, imgname)
         img.save(filename=str(savedfilename))
         os.remove(filename)
@@ -204,19 +213,23 @@ def save_and_convert_image_upload(inputname,folder):
     return None
 
 
-
 def make_thumb(filename, maxgeometry):
 
     thumbpath = filename + '.' + str(maxgeometry)
-    if not os.path.exists(thumbpath) or os.path.getmtime(filename) > os.path.getmtime(thumbpath):
-        img = Image(filename=str(filename))
+    if not os.path.exists(thumbpath) or os.path.getmtime(
+            filename) > os.path.getmtime(thumbpath):
+
+        try:
+            img = Image(filename=str(filename))
+        except Exception as e:
+            print(e)
+            raise (e)
         img.format = 'png'
         img.resize(maxgeometry, maxgeometry)
         img.compression_quality = 90
         img.save(filename=str(thumbpath))
 
     return thumbpath
-
 
 
 @app.route('/')
@@ -239,12 +252,10 @@ def edit(**kwargs):
     data['standard_logo'] = config.standartLogo
     data['standard_footer'] = config.standartFooter
     templatelist = glob.glob(config.textemplatedir + '/*.tex')
-    data['templates'] = [os.path.basename(f)
-                         for f in sorted(templatelist)]
+    data['templates'] = [os.path.basename(f) for f in sorted(templatelist)]
     data['imageextensions'] = config.allowed_extensions
-    
 
-    return render_template('edit.html',data=data)
+    return render_template('edit.html', data=data)
 
 
 @app.route('/edit/<filename>')
@@ -256,51 +267,52 @@ def edit_one(filename):
 def create():
     if request.method == 'POST':
         formdata = defaultdict(str, request.form.to_dict(flat=True))
-        
+
         try:
-            
+
             #Bild upload
             imagedir = config.imagedir
-            category = formdata['img--cat'] 
+            category = formdata['img--cat']
             if not category:
                 category = 'none'
-                
+
             #benuterdefinierte /neue kategorie
-            if(category == "__user"):
+            if (category == "__user"):
                 category = formdata['usercat']
                 if not category:
                     category = 'none'
 
-                
-            
-             #kategorie/ordner festlegen
-            if(category != 'none'):
-                category = category.replace(' ','_').replace('/','_')
-                imagedir = os.path.join(imagedir , category)
+            #kategorie/ordner festlegen
+            if (category != 'none'):
+                category = category.replace(' ', '_').replace('/', '_')
+                imagedir = os.path.join(imagedir, category)
                 if not os.path.exists(imagedir):
                     os.makedirs(imagedir)
             #prüfe ob bild hochgeladen wurde und speichere es
             imgpath = None
-            
-            if formdata['img'] == '__upload':
-            #if formdata['imgupload']:
-                imgpath = save_and_convert_image_upload('imgupload',imagedir)
-            if imgpath is not None:
-                if(category != 'none'):
-                    formdata['img'] =  os.path.join(category,imgpath)
-                else:
-                    formdata['img'] =  imgpath
 
-            
+            if formdata['img'] == '__upload':
+                #if formdata['imgupload']:
+                imgpath = save_and_convert_image_upload('imgupload', imagedir)
+            if imgpath is not None:
+                if (category != 'none'):
+                    formdata['img'] = os.path.join(category, imgpath)
+                else:
+                    formdata['img'] = imgpath
+
             #logo upload
             logopath = None
             if formdata['logo'] == '__upload':
-                logopath = save_and_convert_image_upload('logoupload',config.logodir)
+                logopath = save_and_convert_image_upload(
+                    'logoupload', config.logodir)
             if logopath is not None:
                 formdata['logo'] = logopath
-            
-            outfilename = secure_filename(formdata['headline'][:16]) + str(hash(formdata['headline'] + formdata[
-                'text'] + os.path.splitext(formdata['textemplate'])[0] + os.path.splitext(formdata['img'])[0] + formdata['footer']) )+ '.schild'
+
+            outfilename = secure_filename(formdata['headline'][:16]) + str(
+                hash(formdata['headline'] + formdata['text'] +
+                     os.path.splitext(formdata['textemplate'])[0] +
+                     os.path.splitext(formdata['img'])[0] +
+                     formdata['footer'])) + '.schild'
             if formdata['reusefilename']:
                 outfilename = secure_filename(formdata['filename'])
             outpdfname = outfilename + '.pdf'
@@ -309,22 +321,26 @@ def create():
             save_data(formdata, outfilename)
             run_pdflatex(formdata, os.path.join(config.pdfdir, outpdfname))
             try:
-                flash(Markup(u"""PDF created and data saved. You might create another one. Here's a preview. Click to print.<br/>
+                flash(
+                    Markup(
+                        u"""PDF created and data saved. You might create another one. Here's a preview. Click to print.<br/>
                                 <a href="%s"><img src="%s"/></a>""" %
-                         (url_for('schild', filename=outfilename), url_for(
-                             'pdfthumbnail', pdfname=outpdfname, maxgeometry=200))
-                         ))
+                        (url_for('schild', filename=outfilename),
+                         url_for('pdfthumbnail',
+                                 pdfname=outpdfname,
+                                 maxgeometry=200))))
             except:
                 print("%s created" % outpdfname)
         except Exception as e:
             try:
-                flash(u"Could not create pdf or save data: %s" % str(e), 'error')
+                flash(u"Could not create pdf or save data: %s" % str(e),
+                      'error')
             except:
                 print("Could not create pdf or save data: %s" % str(e))
 
         data = {'form': formdata}
-       # imagelist = glob.glob(config.imagedir + '/*.png')  #TODO unterordner hinzufügen
-       # data['images'] = [os.path.basename(f) for f in imagelist] #TODO nach unterordnern kategorieisieren
+        # imagelist = glob.glob(config.imagedir + '/*.png')  #TODO unterordner hinzufügen
+        # data['images'] = [os.path.basename(f) for f in imagelist] #TODO nach unterordnern kategorieisieren
         data['images'] = generateImagelist()
         templatelist = glob.glob(config.textemplatedir + '/*.tex')
         data['templates'] = [os.path.basename(f) for f in sorted(templatelist)]
@@ -333,7 +349,8 @@ def create():
         except:
             pass
     try:
-        flash("No POST data. You've been redirected to the edit page.", 'warning')
+        flash("No POST data. You've been redirected to the edit page.",
+              'warning')
         return redirect(url_for('edit'))
     except:
         pass
@@ -341,25 +358,38 @@ def create():
 
 @app.route('/schild/<filename>')
 def schild(filename):
-    return render_template('schild.html', data = {'filename': filename, 'printer': [f for f in sorted(config.printers.keys())]})
+    return render_template('schild.html',
+                           data={
+                               'filename':
+                               filename,
+                               'printer':
+                               [f for f in sorted(config.printers.keys())]
+                           })
 
 
 @app.route('/printout', methods=['POST'])
 def printout():
-    filename = os.path.join(
-        config.pdfdir, secure_filename(request.form['filename']))
+    filename = os.path.join(config.pdfdir,
+                            secure_filename(request.form['filename']))
     printer = config.printers[request.form['printer']]
     copies = int(request.form['copies']) or 0
     if copies > 0 and copies <= 6:
         try:
-            lprout = check_output(['lpr', '-H', str(config.printserver), '-P', str(
-                printer), '-#', str(copies)] + config.lproptions + [filename], stderr=STDOUT)
+            lprout = check_output([
+                'lpr', '-H',
+                str(config.printserver), '-P',
+                str(printer), '-#',
+                str(copies)
+            ] + config.lproptions + [filename],
+                                  stderr=STDOUT)
             flash(u'Schild wurde zum Drucker geschickt!')
         except CalledProcessError as e:
-            flash(Markup("<p>Could not print:</p><pre>%s</pre>" % e.output), 'error')
+            flash(Markup("<p>Could not print:</p><pre>%s</pre>" % e.output),
+                  'error')
     else:
         flash(u'Ungültige Anzahl Kopien!')
     return redirect(url_for('index'))
+
 
 def delete_file(filename):
     try:
@@ -377,11 +407,13 @@ def delete_file(filename):
 def delete():
     return delete_file(secure_filename(request.form['filename']))
 
+
 @app.route('/deletelist', methods=['POST'])
 def deletelist():
     for filename in request.form.getlist('filenames'):
         delete_file(secure_filename(filename))
     return redirect(url_for('index'))
+
 
 @app.route('/image/<imgname>')
 def image(imgname):
@@ -394,26 +426,27 @@ def image(imgname):
 
 
 @app.route('/thumbnail/<category>/<imgname>/<int:maxgeometry>')
-def thumbnail(imgname,category, maxgeometry):
+def thumbnail(imgname, category, maxgeometry):
     if category == 'none':
-         imgpath = os.path.join(config.imagedir, secure_filename( imgname))
+        imgpath = os.path.join(config.imagedir, secure_filename(imgname))
     else:
-        imgpath = os.path.join(config.imagedir, category ,secure_filename( imgname))
+        imgpath = os.path.join(config.imagedir, category,
+                               secure_filename(imgname))
     thumbpath = make_thumb(imgpath, maxgeometry)
     with open(thumbpath, 'rb') as imgfile:
         return Response(imgfile.read(), mimetype="image/png")
+
 
 @app.route('/logothumbnail/<category>/<imgname>/<int:maxgeometry>')
-def logothumbnail(imgname,category, maxgeometry):
+def logothumbnail(imgname, category, maxgeometry):
     if category == 'none':
-         imgpath = os.path.join(config.logodir, secure_filename( imgname))
+        imgpath = os.path.join(config.logodir, secure_filename(imgname))
     else:
-        imgpath = os.path.join(config.logodir, category + '/' +secure_filename( imgname))
+        imgpath = os.path.join(config.logodir,
+                               category + '/' + secure_filename(imgname))
     thumbpath = make_thumb(imgpath, maxgeometry)
     with open(thumbpath, 'rb') as imgfile:
         return Response(imgfile.read(), mimetype="image/png")
-
-
 
 
 @app.route('/pdfthumb/<pdfname>/<int:maxgeometry>')
@@ -429,15 +462,18 @@ def tplthumbnail(tplname, maxgeometry):
     pdfpath = os.path.join(config.cachedir, secure_filename(tplname) + '.pdf')
     try:
         run_pdflatex(
-            {'textemplate': secure_filename(tplname),
-             'img': 'pictograms-nps-misc-camera.png',
-             'headline': u'Überschrift',
-             'text': u'Dies ist der Text, der in der UI als Text bezeichnet ist.',
-             'markup': 'latex',
-             'footer': u'Das hier ist der Footer',
-             'logo': config.standartLogo,
-             }, pdfpath, overwrite=False
-        )
+            {
+                'textemplate': secure_filename(tplname),
+                'img': 'pictograms-nps-misc-camera.png',
+                'headline': u'Überschrift',
+                'text':
+                u'Dies ist der Text, der in der UI als Text bezeichnet ist.',
+                'markup': 'latex',
+                'footer': u'Das hier ist der Footer',
+                'logo': config.standartLogo,
+            },
+            pdfpath,
+            overwrite=False)
     except Exception as e:
         print(str(e))
         return str(e)
@@ -455,34 +491,35 @@ def pdfdownload(pdfname):
         return Response(pdffile.read(), mimetype="application/pdf")
 
 
-def generateImagelist(path = None):
+def generateImagelist(path=None):
     #imagelist = sorted(glob.glob(config.imagedir + '/*.png'))
     #standart bilder pfad
-    if(path == None): 
+    if (path == None):
         path = config.imagedir + '/'
-	
+
     imagelist = {}
     imagelist['none'] = []
-	
+
     files = os.walk(path)
-    for root,dirs,files in os.walk(path):
+    for root, dirs, files in os.walk(path):
         for f in files:
             if f.endswith('.png'):
                 filename = os.path.basename(f)
-                category = root.replace(path,'')
-                if(category == ""):
-                	imagelist['none'].append(filename)
+                category = root.replace(path, '')
+                if (category == ""):
+                    imagelist['none'].append(filename)
                 else:
                     if category not in imagelist.keys():
                         imagelist[category] = []
                     imagelist[category].append(filename)
-                
+
     return imagelist
+
 
 def recreate_cache():
     for filename in (glob.glob(os.path.join(config.pdfdir, '*.pdf*')) +
-             glob.glob(os.path.join(config.cachedir, '*.pdf*')) +
-             glob.glob(os.path.join(config.imagedir, '*.png.*'))):
+                     glob.glob(os.path.join(config.cachedir, '*.pdf*')) +
+                     glob.glob(os.path.join(config.imagedir, '*.png.*'))):
         try:
             os.unlink(filename)
             print("Deleted %s" % filename)
@@ -493,6 +530,7 @@ def recreate_cache():
         pdfname = os.path.join(config.pdfdir, data['pdfname'])
         print("Recreating %s" % pdfname)
         run_pdflatex(data, pdfname)
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--recreate-cache':
