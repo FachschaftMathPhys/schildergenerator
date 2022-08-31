@@ -1,10 +1,6 @@
 ---
 version: '2'
 services:
-  pdflatex:
-    build: ./pdflatex
-    command: /bin/true
-    image: pdflatex
   schilder:
     build: .
     ports:
