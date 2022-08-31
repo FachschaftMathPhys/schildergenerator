@@ -12,3 +12,6 @@ services:
     image: schilder
     volumes:
       - ./data:/app/data
+      - type: bind
+        source: ./config.py
+        target: /app/config.py
