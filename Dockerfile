@@ -1,5 +1,5 @@
-# Use an custom pdflatex as parent
-FROM pdflatex
+# Use python3.9 base image to ensure wsgi working
+FROM python:3.9-slim
 
 # Set the working directory to /app
 WORKDIR /app
@@ -14,6 +14,18 @@ ADD . /app
 RUN apt-get update && apt-get install -y \
     libmagickwand-dev \
     python3-pip 
+
+
+# install latex
+RUN apt-get update && apt-get install -y \
+    texlive texlive-lang-english texlive-lang-german \
+    texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+    && \ 
+    apt-get clean -y
+# or alternatively
+# RUN apt-get update && apt-get install -y \
+#     texlive-full && \ 
+#     apt-get clean -y
 
 # Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt
