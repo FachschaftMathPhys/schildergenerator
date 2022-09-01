@@ -1,5 +1,5 @@
-# Use an custom pdflatex as parent
-FROM pdflatex
+# Use python3.9 base image to ensure wsgi working
+FROM python:3.9-slim
 
 # Set the working directory to /app
 WORKDIR /app
@@ -12,31 +12,29 @@ ADD . /app
 
 #install nginx and wand
 RUN apt-get update && apt-get install -y \
-libmagickwand-dev \
-#nginx \
-python3 \
-python3-pip 
-
-#latex
-#texlive \
-#texlive-lang-english \
-#texlive-lang-german \
-#texlive-latex-base \
-#texlive-latex-recommended \
-#texlive-latex-extra 
+    libmagickwand-dev \
+    python3-pip 
 
 
-
+# install latex
+RUN apt-get update && apt-get install -y \
+    texlive texlive-lang-english texlive-lang-german \
+    texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+    && \ 
+    apt-get clean -y
+# or alternatively
+# RUN apt-get update && apt-get install -y \
+#     texlive-full && \ 
+#     apt-get clean -y
 
 # Install any needed packages specified in requirements.txt
-RUN pip3 install --trusted-host pypi.python.org -r requirements.txt
+RUN pip install -r requirements.txt
+
+# Add Image-magick policy file in order to allow working pdfs
+COPY ./image-magick-policy.xml /etc/ImageMagick-6/policy.xml
 
 # Make port 5432 available to the world outside this container
 EXPOSE 5432
-
-#COPY nginx.conf /etc/nginx
-#RUN chmod +x ./start.sh
-#RUN chmod -R a+rw ./data
 
 # Run app.py when the container launches
 CMD ["python3","schilder.py"]

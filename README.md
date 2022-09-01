@@ -52,11 +52,18 @@ Download
 
 Config
 ------
+### Normal installation
 
   * *for testing and production use using wsgi*: copy config.py.example to config.py and edit it to your needs.
   * *for production use using wsgi*: copy schildergen.wsgi.example to schildergen.wsgi and edit it.
-  * *for using docker*: copy config.py.docker to config.py and edit it to your needs.
+  
+### With Docker
 
+- Copy config.py.example to config.py and edit it.
+  - Set the `app_secret`
+  - Set the `basedir` to /app
+  - You may have to change the listen-address at the bottom
+- Select the latex packages you want to install in the Dockerfile
 
 Modify the templates
 --------------------
