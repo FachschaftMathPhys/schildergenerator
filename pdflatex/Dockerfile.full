@@ -1,9 +1,0 @@
-FROM python:3.9-slim
-
-#Dockerfile for full latex support
-
-#install latex
-RUN apt-get update && apt-get install -y \
-    texlive-full && \ 
-    # Remove more unnecessary stuff 
-    apt-get clean -y

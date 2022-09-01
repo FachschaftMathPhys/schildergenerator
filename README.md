@@ -63,6 +63,7 @@ Config
   - Set the `app_secret`
   - Set the `basedir` to /app
   - You may have to change the listen-address at the bottom
+- Select the latex packages you want to install in the Dockerfile
 
 Modify the templates
 --------------------
